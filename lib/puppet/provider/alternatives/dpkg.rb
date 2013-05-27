@@ -2,6 +2,8 @@ Puppet::Type.type(:alternatives).provide(:dpkg) do
 
   commands :update => '/usr/sbin/update-alternatives'
 
+  has_feature :auto
+
   # Return all instances for this provider
   #
   # @return [Array<Puppet::Type::Alternatives::ProviderDpkg>] A list of all current provider instances
@@ -16,7 +18,7 @@ Puppet::Type.type(:alternatives).provide(:dpkg) do
 
     output.split(/\n/).inject({}) do |hash, line|
       name, source, path = line.split(/\s+/)
-      hash[name] = {:source => source, :path => path}
+      hash[name] = {:source => source, :path => path, :auto => (source == 'auto')}
       hash
     end
   end
@@ -31,5 +33,23 @@ Puppet::Type.type(:alternatives).provide(:dpkg) do
   def path=(newpath)
     name = @resource.value(:name)
     update('--set', name, newpath)
+  end
+
+  # @return [Boolean] If the alternative is using the automatic option
+  def auto
+    output = update('--display', @resource.value(:name))
+    first = output.split("\n").first
+
+    if first.match /auto mode/
+      true
+    elsif first.match /manual mode/
+      false
+    elsif
+      raise Puppet::Error, "Could not determine if #{self} is in auto or manual mode"
+    end
+  end
+
+  def auto=(_)
+    update('--auto', @resource.value(:name))
   end
 end
