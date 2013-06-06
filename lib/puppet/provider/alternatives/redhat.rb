@@ -5,7 +5,7 @@ Puppet::Type.type(:alternatives).provide(:redhat) do
 
   # Return all instances for this provider
   #
-  # @return [Array<Puppet::Type::Alternatives::ProviderDpkg>] A list of all current provider instances
+  # @return [Array<Puppet::Type::Alternatives::ProviderRedhat>] A list of all current provider instances
   def self.instances
     all.map { |name, attributes| new(:name => name, :path => attributes[:path]) }
   end
