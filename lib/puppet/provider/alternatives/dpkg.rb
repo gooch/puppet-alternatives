@@ -3,7 +3,7 @@ Puppet::Type.type(:alternatives).provide(:dpkg) do
   confine :osfamily => 'Debian'
   commands :update => '/usr/sbin/update-alternatives'
 
-  has_feature :auto
+  has_feature :mode
 
   # Return all instances for this provider
   #
@@ -21,8 +21,8 @@ Puppet::Type.type(:alternatives).provide(:dpkg) do
     output = update('--get-selections')
 
     output.split(/\n/).inject({}) do |hash, line|
-      name, source, path = line.split(/\s+/)
-      hash[name] = {:source => source, :path => path, :auto => (source == 'auto')}
+      name, mode, path = line.split(/\s+/)
+      hash[name] = {:path => path, :mode => mode}
       hash
     end
   end
@@ -30,7 +30,9 @@ Puppet::Type.type(:alternatives).provide(:dpkg) do
   # Retrieve the current path link
   def path
     name = @resource.value(:name)
-    self.class.all[name][:path]
+    if (attrs = self.class.all[name])
+      attrs[:path]
+    end
   end
 
   # @param [String] newpath The path to use as the new alternative link
@@ -39,21 +41,22 @@ Puppet::Type.type(:alternatives).provide(:dpkg) do
     update('--set', name, newpath)
   end
 
-  # @return [Boolean] If the alternative is using the automatic option
-  def auto
+  # @return [String] The alternative mode
+  def mode
     output = update('--display', @resource.value(:name))
     first = output.split("\n").first
 
     if first.match /auto mode/
-      true
+      'auto'
     elsif first.match /manual mode/
-      false
-    elsif
+      'manual'
+    else
       raise Puppet::Error, "Could not determine if #{self} is in auto or manual mode"
     end
   end
 
-  def auto=(_)
+  # Set the mode to auto.
+  def mode=(_)
     update('--auto', @resource.value(:name))
   end
 end
